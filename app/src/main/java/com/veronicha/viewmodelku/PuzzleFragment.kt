@@ -5,7 +5,9 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.databinding.DataBindingUtil
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.fragment.findNavController
 import com.veronicha.viewmodelku.databinding.FragmentPuzzleBinding
@@ -19,6 +21,7 @@ class PuzzleFragment : Fragment() {
 
 
     private lateinit var puzzleViewModel: PuzzleViewModel
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -26,19 +29,33 @@ class PuzzleFragment : Fragment() {
         binding = DataBindingUtil.inflate(inflater,R.layout.fragment_puzzle,container,false)
 
         puzzleViewModel = ViewModelProvider(this).get(PuzzleViewModel::class.java)
+        binding.lifecycleOwner = this
+
+        puzzleViewModel.word.observe(viewLifecycleOwner, Observer {
+            binding.textAnswerBox1.text= puzzleViewModel.word?.value?.question_gap_1
+            binding.textAnswerBox2.text  = puzzleViewModel.word?.value?.question_gap_2
+        })
+
+        puzzleViewModel.word.observe(viewLifecycleOwner, Observer {
+            binding.textScore.text = it.toString()
+        })
+
+        puzzleViewModel.gameFinish.observe(viewLifecycleOwner, Observer {
+            if(it){
+                gameOver()
+            }
+        })
+
 
         binding.btnOK.setOnClickListener {
             checkAnswer()
-            updateScore()
-            updateWord()
+
         }
         binding.btnSkip.setOnClickListener {
             puzzleViewModel.onSkip()
-            updateScore()
-            updateWord()
+
         }
-        updateScore()
-        updateWord()
+
         return binding.root
     }
 
@@ -48,35 +65,29 @@ class PuzzleFragment : Fragment() {
     }
 
 
-
-
     private fun gameOver(){
         val action =
-            PuzzleFragmentDirections.actionPuzzleFragmentToGameOverFragment(puzzleViewModel.score)
+                //if this value is use zero and else not null use this value
+            PuzzleFragmentDirections.actionPuzzleFragmentToGameOverFragment(puzzleViewModel.score.value?:0)
         findNavController().navigate(action)
 
+        puzzleViewModel.onGameOver()
+//        Toast.makeText(activity, "Game Finish", Toast.LENGTH_SHORT)
+
+
     }
 
-    fun updateWord(){
-
-        binding.textAnswerBox1.text= puzzleViewModel.word?.question_gap_1
-        binding.textAnswerBox2.text  = puzzleViewModel.word?.question_gap_2
-    }
-
-    fun updateScore(){
-        binding.textScore.text = puzzleViewModel.score?.toString()
-    }
 
     fun checkAnswer(){
-        if(text_answer_gap.text.toString().toUpperCase() == puzzleViewModel.word?.correctAnswer){
+        if(text_answer_gap.text.toString().toUpperCase() == puzzleViewModel.word?.value?.correctAnswer){
             text_answer_gap.text  = null
             puzzleViewModel.onRightAnswer()
-            puzzleViewModel.nextWord()
+//            puzzleViewModel.nextWord()
         }
         else{
             text_answer_gap.text  = null
             puzzleViewModel.onWrongAnswer()
-            puzzleViewModel.nextWord()
+//            puzzleViewModel.nextWord()
         }
     }
 
